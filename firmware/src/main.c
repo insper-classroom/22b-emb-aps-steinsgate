@@ -22,8 +22,9 @@
 void init(void);
 void set_buzzer(void);
 void clear_buzzer(void);
-int  get_startstop(Pio *p_pio, const pio_type_t ul_type, const uint32_t ul_mask);
-int  get_selecao(Pio *p_pio, const pio_type_t ul_type, const uint32_t ul_mask);
+int  get_startstop(void);
+int  get_selecao(void);
+void buzzer_test(int freq);
 
 void set_buzzer(void){
 	pio_set(BUZZER_PIO, BUZZER_PIO_IDX_MASK);
@@ -31,15 +32,23 @@ void set_buzzer(void){
 
 void clear_buzzer(void){
 	pio_clear(BUZZER_PIO, BUZZER_PIO_IDX_MASK);
-
 }
 	
-int  get_startstop(Pio *p_pio, const pio_type_t ul_type, const uint32_t ul_mask){
-	return pio_get(p_pio, ul_type, ul_mask);
+int  get_startstop(void){
+	return pio_get(START_PIO, PIO_INPUT, START_PIO_IDX_MASK);
 }
 
-int  get_selecao()(Pio *p_pio, const pio_type_t ul_type, const uint32_t ul_mask){
-	return pio_get(p_pio, ul_type, ul_mask);
+int  get_selecao(void){
+	return pio_get(SELECAO_PIO, PIO_INPUT, SELECAO_PIO_IDX_MASK);
+}
+
+void buzzer_test(int freq){
+	int tempo = 100/(freq);
+	set_buzzer();     
+	delay_ms(tempo);                           
+	clear_buzzer();   
+	delay_ms(tempo);
+	
 }
 
 void init(void)
@@ -54,11 +63,17 @@ void init(void)
 	// para que possamos controlar o LED.
 	pmc_enable_periph_clk(BUZZER_PIO_ID);
 	pmc_enable_periph_clk(START_PIO_ID);
+	pmc_enable_periph_clk(SELECAO_PIO_ID);
+	
 	//Inicializa PC8 como saída
 	// POINTER, BITMASK, default level ,  pin configure open-drain , pull-up activate
 	pio_set_output(BUZZER_PIO, BUZZER_PIO_IDX_MASK, 0, 0, 0);
 	
 	pio_set_input(START_PIO, START_PIO_IDX_MASK, PIO_DEFAULT);
+	pio_set_input(SELECAO_PIO, SELECAO_PIO_IDX_MASK, PIO_DEFAULT);
+	
+	pio_pull_up(START_PIO, START_PIO_IDX_MASK, 1);
+	pio_pull_up(SELECAO_PIO, SELECAO_PIO_IDX_MASK, 1);
 }
 
 int main (void)
@@ -76,16 +91,17 @@ int main (void)
 
   /* Insert application code here, after the board has been initialized. */
 	while(1) {
-		if (!get_startstop(START_PIO, PIO_INPUT, START_PIO_IDX_MASK)){
+		if (!get_startstop()){
 			gfx_mono_draw_string("nao", 50,16, &sysfont);
 			delay_ms(1000); 
 		}
-		else{
-			gfx_mono_draw_string("sim", 50,16, &sysfont);
+		if (!get_selecao()){
+			gfx_mono_draw_string("kkk", 50,16, &sysfont);
+			delay_ms(1000); 
 		}
-		set_buzzer();      // Coloca 1 no pino LED
-		delay_ms(100);                           // Delay por software de 200 ms
-		clear_buzzer();    // Coloca 0 no pino do LED
-		delay_ms(100);
+		gfx_mono_draw_string("sim", 50,16, &sysfont);
+		
+		buzzer_test(1);
+		
 	}
 }
