@@ -20,12 +20,28 @@
 #define SELECAO_PIO_IDX 31
 #define SELECAO_PIO_IDX_MASK (1u << SELECAO_PIO_IDX)
 
-#define TEMPO 200
+//LED1
+#define LED1_PIO           PIOA                 // periferico que controla o LED
+#define LED1_PIO_ID        ID_PIOA              // ID do periférico PIOC (controla LED)
+#define LED1_PIO_IDX       0                   // ID do LED no PIO
+#define LED1_PIO_IDX_MASK  (1 << LED1_PIO_IDX)   // Mascara para CONTROLARMOS o LED
 
+//LED2
+#define LED2_PIO           PIOC                 // periferico que controla o LED
+#define LED2_PIO_ID        ID_PIOC              // ID do periférico PIOC (controla LED)
+#define LED2_PIO_IDX       30                    // ID do LED no PIO
+#define LED2_PIO_IDX_MASK  (1 << LED2_PIO_IDX)   // Mascara para CONTROLARMOS o LED
 
-int wholenote = (60000 * 4) / TEMPO;
-int notes = sizeof(melody) / sizeof(melody[0]) / 2;
-int divider = 0, noteDuration = 0;
+//LED3
+#define LED3_PIO           PIOB                 // periferico que controla o LED
+#define LED3_PIO_ID        ID_PIOB              // ID do periférico PIOC (controla LED)
+#define LED3_PIO_IDX       2                    // ID do LED no PIO
+#define LED3_PIO_IDX_MASK  (1 << LED3_PIO_IDX)   // Mascara para CONTROLARMOS o LED
+
+volatile char stop = 1;
+volatile char but_flag;
+volatile char selecao_flag = 0;
+int led = 0;
 
 void init(void);
 void set_buzzer(void);
@@ -34,7 +50,7 @@ int  get_startstop(void);
 int  get_selecao(void);
 void buzzer_test(int freq);
 void tone(int freq, int time);
-void play(int melodia[], int size, int status);
+void play(int melodia[], int time, int notes);
 
 
 void set_buzzer(void){
@@ -54,18 +70,32 @@ int  get_selecao(void){
 }
 
 void buzzer_test(int freq){
+	if (led){
+		pio_clear(LED1_PIO, LED1_PIO_IDX_MASK);
+		pio_set(LED2_PIO, LED2_PIO_IDX_MASK);
+		pio_clear(LED3_PIO, LED3_PIO_IDX_MASK);
+	}
+	else{
+		pio_set(LED1_PIO, LED1_PIO_IDX_MASK);
+		pio_clear(LED2_PIO, LED2_PIO_IDX_MASK);
+		pio_set(LED3_PIO, LED3_PIO_IDX_MASK);
+	}
 	int wait = 1E6/(freq);
+	//(led == 0 ? pio_set(LED1_PIO, LED1_PIO_IDX_MASK) : (led == 1 ? pio_set(LED2_PIO, LED2_PIO_IDX_MASK) : pio_set(LED3_PIO, LED3_PIO_IDX_MASK)));
 	set_buzzer();     
-	delay_us(wait/2);                           
+	delay_us(wait/2); 
+	//(led == 0 ? pio_clear(LED1_PIO, LED1_PIO_IDX_MASK) : (led == 1 ? pio_clear(LED2_PIO, LED2_PIO_IDX_MASK) : pio_clear(LED3_PIO, LED3_PIO_IDX_MASK)));                      
 	clear_buzzer();   
 	delay_us(wait/2);
-	
+	led=!led;
 }
 
 void tone(int freq, int time){
 	 int i = 0;
-	 // precisamos contar a quantidade de pulsos no tempo (dado em ms), logo basta converter o tempo para segundos e multiplicar pela frequencia de oscilação, lembrando do casting para nao perder valor.
-	 int count = (double)freq * ((double) time/1000);
+	 // precisamos contar a quantidade de pulsos no tempo (dado em ms), logo basta converter o tempo para segundos e 
+	 // multiplicar pela frequencia de oscilação, lembrando do casting para nao perder valor.
+	 double time_s = (double) time/1000;
+	 int count = (float)freq * time_s;
 	 while (i < count){
 		 buzzer_test(freq);
 		 i++;
@@ -73,35 +103,59 @@ void tone(int freq, int time){
 	
 }
 
-void play(int melodia[], int noteDuration, int status){
-	while (status){
-		for (int thisNote = 0; thisNote < notes * 2; thisNote = thisNote + 2) {
-			divider = melody[thisNote + 1];
-			noteDuration = (wholenote) / abs(divider);
+void play(int melodia[], int time, int notes){
+		int wholenote = (60000 * 4) / time;
+		int divider = 0;
+		for (int thisNote = 0; thisNote < notes * 2 && !stop; thisNote = thisNote + 2) {
+			divider = melodia[thisNote + 1];
+			int noteDuration = (wholenote) / abs(divider);
 			if (divider < 0) {
 				noteDuration *= 1.5;
 			}
-			if  (melody[thisNote] != 0){
-				tone(melody[thisNote], noteDuration*0.9);
+			if  (melodia[thisNote] != 0){
+				tone(melodia[thisNote], noteDuration*0.9);
 				delay_ms(noteDuration/2);
 			}
 			else{
 				delay_ms(noteDuration);
 			}
-		
 		}
+}
+
+void but_callback(void)
+{
+	stop = !stop;
+	but_flag = 1;
+}
+
+void selecao_callback(void)
+{
+	if (selecao_flag > 2){
+		selecao_flag = 1;
+		return;
 	}
+	selecao_flag++;
 }
 
 void init(void)
 {
+	board_init();
 	// Initialize the board clock
 	sysclk_init();
+	// Init OLED
+	gfx_mono_ssd1306_init();
 
 	// Desativa WatchDog Timer
 	WDT->WDT_MR = WDT_MR_WDDIS;
 	
 	// Ativa o PIO na qual o LED foi conectado
+	pmc_enable_periph_clk(LED1_PIO_ID);
+	pio_configure(LED1_PIO, PIO_OUTPUT_0, LED1_PIO_IDX_MASK, PIO_DEFAULT);
+	pmc_enable_periph_clk(LED2_PIO_ID);
+	pio_configure(LED2_PIO, PIO_OUTPUT_0, LED2_PIO_IDX_MASK, PIO_DEFAULT);
+	pmc_enable_periph_clk(LED3_PIO_ID);
+	pio_configure(LED3_PIO, PIO_OUTPUT_0, LED3_PIO_IDX_MASK, PIO_DEFAULT);
+	
 	// para que possamos controlar o LED.
 	pmc_enable_periph_clk(BUZZER_PIO_ID);
 	pmc_enable_periph_clk(START_PIO_ID);
@@ -111,39 +165,77 @@ void init(void)
 	// POINTER, BITMASK, default level ,  pin configure open-drain , pull-up activate
 	pio_set_output(BUZZER_PIO, BUZZER_PIO_IDX_MASK, 0, 0, 0);
 	
-	pio_set_input(START_PIO, START_PIO_IDX_MASK, PIO_DEFAULT);
-	pio_set_input(SELECAO_PIO, SELECAO_PIO_IDX_MASK, PIO_DEFAULT);
+	pio_configure(START_PIO, PIO_INPUT, START_PIO_IDX_MASK, PIO_PULLUP | PIO_DEBOUNCE);
+	pio_set_debounce_filter(START_PIO, START_PIO_IDX_MASK, 60);
 	
-	pio_pull_up(START_PIO, START_PIO_IDX_MASK, 1);
-	pio_pull_up(SELECAO_PIO, SELECAO_PIO_IDX_MASK, 1);
+	pio_configure(SELECAO_PIO, PIO_INPUT, SELECAO_PIO_IDX_MASK, PIO_PULLUP | PIO_DEBOUNCE);
+	pio_set_debounce_filter(SELECAO_PIO, SELECAO_PIO_IDX_MASK, 60);
+	
+	pio_handler_set(START_PIO,
+	START_PIO_ID,
+	START_PIO_IDX_MASK,
+	PIO_IT_RISE_EDGE,
+	but_callback);
+	
+	pio_handler_set(SELECAO_PIO,
+	SELECAO_PIO_ID,
+	SELECAO_PIO_IDX_MASK,
+	PIO_IT_RISE_EDGE,
+	selecao_callback);
+	
+	
+	// Ativa interrupção e limpa primeira IRQ gerada na ativacao
+	pio_enable_interrupt(START_PIO, START_PIO_IDX_MASK);
+	pio_get_interrupt_status(START_PIO);
+	
+	pio_enable_interrupt(SELECAO_PIO, SELECAO_PIO_IDX_MASK);
+	pio_get_interrupt_status(SELECAO_PIO);
+	
+	NVIC_EnableIRQ(START_PIO_ID);
+	NVIC_SetPriority(START_PIO_ID, 4); // Prioridade 4
+	NVIC_EnableIRQ(SELECAO_PIO_ID);
+	NVIC_SetPriority(SELECAO_PIO_ID, 4); // Prioridade 4
 }
 
 int main (void)
 {
-	board_init();
 	init();
-	delay_init();
-
-  // Init OLED
-	gfx_mono_ssd1306_init();
-  
   // Escreve na tela um circulo e um texto
-	gfx_mono_draw_filled_circle(20, 16, 16, GFX_PIXEL_SET, GFX_WHOLE);
-	gfx_mono_draw_string("sim", 50,16, &sysfont);
+	//gfx_mono_draw_filled_circle(20, 16, 16, GFX_PIXEL_SET, GFX_WHOLE);
+	gfx_mono_draw_string("         ", 25,16, &sysfont);
+	gfx_mono_draw_string("Inicie", 25,16, &sysfont);
 
   /* Insert application code here, after the board has been initialized. */
 	while(1) {
-		if (!get_startstop()){
-			gfx_mono_draw_string("     ", 50,16, &sysfont);
-			gfx_mono_draw_string("Mario", 80,16, &sysfont);
-			delay_ms(1000); 
-			play(melody, noteDuration,get_startstop());
+		if (but_flag){
+			if (selecao_flag == 1){
+				play(mario,time_mario,notes_mario);
+			}
+			else if(selecao_flag ==2){
+				play(starwars,time_starwars,notes_starwars);
+			}
+			else if(selecao_flag ==3){
+				play(godfather,time_godfather,notes_godfather);
+			}
+			but_flag = 0;
 		}
 		if (!get_selecao()){
-			gfx_mono_draw_string("teste", 50,16, &sysfont);
-			delay_ms(1000); 
-		}
-		gfx_mono_draw_string("sim  ", 50,16, &sysfont);
-		
+			if (selecao_flag == 1){
+				gfx_mono_draw_string("          ", 25,16, &sysfont);
+				gfx_mono_draw_string("Star Wars", 25,16, &sysfont);
+				
+			}
+			else if (selecao_flag == 2){
+				gfx_mono_draw_string("           ", 25,16, &sysfont);
+				gfx_mono_draw_string("Godfather", 25,16, &sysfont);
+				
+			}
+			else  if (selecao_flag == 3){
+				gfx_mono_draw_string("          ", 25,16, &sysfont);
+				gfx_mono_draw_string("Mario", 25,16, &sysfont);
+			}
+			
+			
+		}		
 	}
 }
