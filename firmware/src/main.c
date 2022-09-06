@@ -41,7 +41,10 @@
 volatile char stop = 1;
 volatile char but_flag;
 volatile char selecao_flag = 0;
+volatile char simbolo = 0;
 int led = 0;
+int thisNote = 0;
+int start = 1;
 
 void init(void);
 void set_buzzer(void);
@@ -108,12 +111,20 @@ void play(int melodia[], int time, int notes){
 		int wholenote = (60000 * 4) / time;
 		int divider = 0;
 		
-		for(int i=140;i>=0;i-=2){
-			gfx_mono_draw_rect(i, 5, 2, 5, GFX_PIXEL_CLR);
+		if (!thisNote){
+			for(int i=140;i>=0;i-=2){
+				gfx_mono_draw_rect(i, 5, 2, 5, GFX_PIXEL_CLR);
+			}
 		}
-		
-		for (int thisNote = 0; thisNote < notes * 2 && !stop; thisNote = thisNote + 2) {
-			gfx_mono_draw_rect(100*thisNote / (2*notes) + 30 , 5, 2, 5, GFX_PIXEL_SET);
+
+		for (thisNote; thisNote < notes * 2 && !stop; thisNote = thisNote + 2) {
+			gfx_mono_draw_rect(97*thisNote / (2*notes) + 30 , 5, 2, 5, GFX_PIXEL_SET);
+				if (simbolo){
+					gfx_mono_generic_draw_vertical_line(2, 10, 20,GFX_PIXEL_CLR);
+					gfx_mono_generic_draw_line(2,10,15,20,GFX_PIXEL_CLR);
+					gfx_mono_generic_draw_line(2,30,15,20,GFX_PIXEL_CLR);
+				}
+				botao_pause();
 			divider = melodia[thisNote + 1];
 			int noteDuration = (wholenote) / abs(divider);
 			if (divider < 0) {
@@ -131,13 +142,11 @@ void play(int melodia[], int time, int notes){
 
 void barra_interativa(void){
 	for(int i=40;i<=120;i+=2){
-		
 		gfx_mono_draw_rect(i, 5, 2, 10, GFX_PIXEL_SET);
 		delay_ms(10);
 		
 	}
 	for(int i=120;i>=40;i-=2){
-		
 		gfx_mono_draw_rect(i, 5, 2, 10, GFX_PIXEL_CLR);
 		delay_ms(10);
 		
@@ -145,24 +154,27 @@ void barra_interativa(void){
 }
 
 void botao_play(void){
-	gfx_mono_generic_draw_vertical_line(2, 10, 25,GFX_PIXEL_SET);
-	gfx_mono_generic_draw_line(2,10,17,20,GFX_PIXEL_SET);
-	gfx_mono_generic_draw_line(2,30,17,20,GFX_PIXEL_SET);
+	gfx_mono_generic_draw_vertical_line(2, 10, 20,GFX_PIXEL_SET);
+	gfx_mono_generic_draw_line(2,10,15,20,GFX_PIXEL_SET);
+	gfx_mono_generic_draw_line(2,30,15,20,GFX_PIXEL_SET);
 }
 
 void botao_pause(void){
-	gfx_mono_generic_draw_vertical_line(2, 17, 10,GFX_PIXEL_SET);
-	gfx_mono_generic_draw_vertical_line(8, 17, 10,GFX_PIXEL_SET);
+	gfx_mono_generic_draw_vertical_line(2, 10, 20,GFX_PIXEL_SET);
+	gfx_mono_generic_draw_vertical_line(12, 10, 20,GFX_PIXEL_SET);
 }
 
 void but_callback(void)
 {
+	simbolo = !simbolo;
 	stop = !stop;
 	but_flag = 1;
 }
 
+
 void selecao_callback(void)
 {
+	thisNote = 0;
 	if (selecao_flag > 2){
 		selecao_flag = 1;
 		return;
@@ -216,7 +228,6 @@ void init(void)
 	PIO_IT_RISE_EDGE,
 	selecao_callback);
 	
-	
 	// Ativa interrupção e limpa primeira IRQ gerada na ativacao
 	pio_enable_interrupt(START_PIO, START_PIO_IDX_MASK);
 	pio_get_interrupt_status(START_PIO);
@@ -237,18 +248,22 @@ int main (void)
 	//gfx_mono_draw_filled_circle(20, 16, 16, GFX_PIXEL_SET, GFX_WHOLE);
 	gfx_mono_draw_string("         ", 25,16, &sysfont);
 	gfx_mono_draw_string("Inicie", 45,16, &sysfont);
-
+	
   /* Insert application code here, after the board has been initialized. */
 	while(1) {
+		if (start){
+			barra_interativa();
+		}
+		
 		if (stop){
-			gfx_mono_draw_filled_rect(2,8,20,23,GFX_PIXEL_CLR);
+			if (!simbolo){
+				gfx_mono_generic_draw_vertical_line(2, 10, 20,GFX_PIXEL_CLR);
+				gfx_mono_generic_draw_vertical_line(12, 10, 20,GFX_PIXEL_CLR);
+			}
 			botao_play();
 		}
-		else{
-			gfx_mono_draw_filled_rect(2,8,20,23,GFX_PIXEL_CLR);
-			botao_pause();
-		}
 		if (but_flag){
+			start = 0;
 			if (selecao_flag == 1){
 				play(mario,time_mario,notes_mario);
 			}
@@ -263,7 +278,7 @@ int main (void)
 		if (!get_selecao()){
 			if (selecao_flag == 1){
 				gfx_mono_draw_string("          ", 25,16, &sysfont);
-				gfx_mono_draw_string("Star Wars", 30,16, &sysfont);
+				gfx_mono_draw_string("Star Wars", 35,16, &sysfont);
 				
 			}
 			else if (selecao_flag == 2){
@@ -275,7 +290,6 @@ int main (void)
 				gfx_mono_draw_string("          ", 25,16, &sysfont);
 				gfx_mono_draw_string("Mario", 45,16, &sysfont);
 			}
-			
 			
 		}		
 	}
