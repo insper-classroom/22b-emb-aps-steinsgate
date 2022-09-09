@@ -42,9 +42,12 @@ volatile char stop = 1;
 volatile char but_flag;
 volatile char selecao_flag = 0;
 volatile char simbolo = 0;
+volatile char desenha = 0;
+volatile char troca = 0 ;
 int led = 0;
 int thisNote = 0;
 int start = 1;
+
 
 void init(void);
 void set_buzzer(void);
@@ -104,27 +107,24 @@ void tone(int freq, int time){
 		 buzzer_test(freq);
 		 i++;
 	 }
-	
 }
 
 void play(int melodia[], int time, int notes){
 		int wholenote = (60000 * 4) / time;
 		int divider = 0;
-		
 		if (!thisNote){
 			for(int i=140;i>=0;i-=2){
 				gfx_mono_draw_rect(i, 5, 2, 5, GFX_PIXEL_CLR);
 			}
 		}
-
 		for (thisNote; thisNote < notes * 2 && !stop; thisNote = thisNote + 2) {
 			gfx_mono_draw_rect(97*thisNote / (2*notes) + 30 , 5, 2, 5, GFX_PIXEL_SET);
-				if (simbolo){
-					gfx_mono_generic_draw_vertical_line(2, 10, 20,GFX_PIXEL_CLR);
-					gfx_mono_generic_draw_line(2,10,15,20,GFX_PIXEL_CLR);
-					gfx_mono_generic_draw_line(2,30,15,20,GFX_PIXEL_CLR);
-				}
+			if (simbolo){
+				gfx_mono_generic_draw_vertical_line(2, 10, 20,GFX_PIXEL_CLR);
+				gfx_mono_generic_draw_line(2,10,15,20,GFX_PIXEL_CLR);
+				gfx_mono_generic_draw_line(2,30,15,20,GFX_PIXEL_CLR);
 				botao_pause();
+			}
 			divider = melodia[thisNote + 1];
 			int noteDuration = (wholenote) / abs(divider);
 			if (divider < 0) {
@@ -141,15 +141,13 @@ void play(int melodia[], int time, int notes){
 }
 
 void barra_interativa(void){
-	for(int i=40;i<=120;i+=2){
+	for(int i=40;i<=120 && !troca;i+=2){
 		gfx_mono_draw_rect(i, 5, 2, 10, GFX_PIXEL_SET);
 		delay_ms(10);
-		
 	}
-	for(int i=120;i>=40;i-=2){
+	for(int i=120;i>=40 && !troca;i-=2){
 		gfx_mono_draw_rect(i, 5, 2, 10, GFX_PIXEL_CLR);
 		delay_ms(10);
-		
 	}
 }
 
@@ -168,6 +166,7 @@ void but_callback(void)
 {
 	simbolo = !simbolo;
 	stop = !stop;
+	desenha = 1;
 	but_flag = 1;
 }
 
@@ -175,6 +174,7 @@ void but_callback(void)
 void selecao_callback(void)
 {
 	thisNote = 0;
+	troca = 1;
 	if (selecao_flag > 2){
 		selecao_flag = 1;
 		return;
@@ -246,21 +246,23 @@ int main (void)
 	init();
   // Escreve na tela um circulo e um texto
 	//gfx_mono_draw_filled_circle(20, 16, 16, GFX_PIXEL_SET, GFX_WHOLE);
-	gfx_mono_draw_string("         ", 25,16, &sysfont);
 	gfx_mono_draw_string("Inicie", 45,16, &sysfont);
-	
+
+
   /* Insert application code here, after the board has been initialized. */
 	while(1) {
 		if (start){
+			botao_play();
 			barra_interativa();
 		}
 		
 		if (stop){
-			if (!simbolo){
+			if (!simbolo && desenha){
 				gfx_mono_generic_draw_vertical_line(2, 10, 20,GFX_PIXEL_CLR);
 				gfx_mono_generic_draw_vertical_line(12, 10, 20,GFX_PIXEL_CLR);
+				botao_play();
+				desenha = 0;
 			}
-			botao_play();
 		}
 		if (but_flag){
 			start = 0;
@@ -275,22 +277,20 @@ int main (void)
 			}
 			but_flag = 0;
 		}
-		if (!get_selecao()){
+		if (troca){
 			if (selecao_flag == 1){
-				gfx_mono_draw_string("          ", 25,16, &sysfont);
-				gfx_mono_draw_string("Star Wars", 35,16, &sysfont);
-				
-			}
-			else if (selecao_flag == 2){
-				gfx_mono_draw_string("           ", 25,16, &sysfont);
-				gfx_mono_draw_string("Godfather", 35,16, &sysfont);
-				
-			}
-			else  if (selecao_flag == 3){
 				gfx_mono_draw_string("          ", 25,16, &sysfont);
 				gfx_mono_draw_string("Mario", 45,16, &sysfont);
 			}
-			
+			else if (selecao_flag == 2){
+				gfx_mono_draw_string("           ", 25,16, &sysfont);
+				gfx_mono_draw_string("Star Wars", 35,16, &sysfont);
+			}
+			else  if (selecao_flag == 3){
+				gfx_mono_draw_string("          ", 25,16, &sysfont);
+				gfx_mono_draw_string("Godfather", 35,16, &sysfont);
+			}
+			troca = 0;
 		}		
 	}
 }
