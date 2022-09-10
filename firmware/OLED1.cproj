@@ -575,6 +575,12 @@
     <Compile Include="src\ASF\common\services\sleepmgr\sam\sleepmgr.c">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="src\godfather.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\mario.h">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="src\musicas.c">
       <SubType>compile</SubType>
     </Compile>
@@ -587,7 +593,7 @@
     <Compile Include="src\play.h">
       <SubType>compile</SubType>
     </Compile>
-    <Compile Include="src\songs.h">
+    <Compile Include="src\starwars.h">
       <SubType>compile</SubType>
     </Compile>
     <None Include="src\ASF\common\services\sleepmgr\sleepmgr.h">

@@ -1,7 +1,9 @@
 #include <asf.h>
 
 
-#include "songs.h"
+#include "mario.h"
+#include "starwars.h"
+#include "godfather.h"
 #include "play.h"
 #include "musicas.h"
 #include <asf.h>
