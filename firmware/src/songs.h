@@ -282,7 +282,7 @@ int time_mario = 200;
 int time_starwars = 130;
 int time_godfather = 80;
 
- int starwars[] = {
+ int starwars_song[] = {
 	
 	// Dart Vader theme (Imperial March) - Star wars
 	// Score available at https://musescore.com/user/202909/scores/1141521
@@ -309,7 +309,7 @@ int time_godfather = 80;
 	
 };
 
-int mario[] = {
+int mario_song[] = {
 	// Super Mario Bros theme
 	// Score available at https://musescore.com/user/2123/scores/2145
 	// Theme by Koji Kondo
@@ -398,7 +398,7 @@ int mario[] = {
 
 };
 
-int godfather[] = {
+int godfather_song[] = {
 
 	// The Godfather theme
 	// Score available at https://musescore.com/user/35463/scores/55160
@@ -438,6 +438,6 @@ int godfather[] = {
 	NOTE_E4, 2 //13
 };
 
-int notes_starwars = sizeof(starwars) / sizeof(starwars[0]) / 2;
-int notes_mario = sizeof(mario) / sizeof(mario[0]) / 2;
-int notes_godfather = sizeof(godfather) / sizeof(godfather[0]) / 2;
+int notes_starwars = sizeof(starwars_song) / sizeof(starwars_song[0]) / 2;
+int notes_mario = sizeof(mario_song) / sizeof(mario_song[0]) / 2;
+int notes_godfather = sizeof(godfather_song) / sizeof(godfather_song[0]) / 2;

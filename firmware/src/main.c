@@ -1,166 +1,16 @@
 #include <asf.h>
 
+
+#include "songs.h"
+#include "play.h"
+#include "musicas.h"
+#include <asf.h>
 #include "gfx_mono_ug_2832hsweg04.h"
 #include "gfx_mono_text.h"
 #include "sysfont.h"
-#include "songs.h"
-
-#define BUZZER_PIO        PIOA                 // periferico que controla o BUZZER
-#define BUZZER_PIO_ID        ID_PIOA              // ID do periférico PIOA (controla BUZZER)
-#define BUZZER_PIO_IDX       4                    // ID do BUZZER no PIO
-#define BUZZER_PIO_IDX_MASK  (1 << BUZZER_PIO_IDX)   // Mascara para CONTROLARMOS o BUZZER
-
-#define START_PIO PIOD
-#define START_PIO_ID ID_PIOD
-#define START_PIO_IDX 28
-#define START_PIO_IDX_MASK (1u << START_PIO_IDX)
-
-#define SELECAO_PIO PIOC
-#define SELECAO_PIO_ID ID_PIOC
-#define SELECAO_PIO_IDX 31
-#define SELECAO_PIO_IDX_MASK (1u << SELECAO_PIO_IDX)
-
-//LED1
-#define LED1_PIO           PIOA                 // periferico que controla o LED
-#define LED1_PIO_ID        ID_PIOA              // ID do periférico PIOC (controla LED)
-#define LED1_PIO_IDX       0                   // ID do LED no PIO
-#define LED1_PIO_IDX_MASK  (1 << LED1_PIO_IDX)   // Mascara para CONTROLARMOS o LED
-
-//LED2
-#define LED2_PIO           PIOC                 // periferico que controla o LED
-#define LED2_PIO_ID        ID_PIOC              // ID do periférico PIOC (controla LED)
-#define LED2_PIO_IDX       30                    // ID do LED no PIO
-#define LED2_PIO_IDX_MASK  (1 << LED2_PIO_IDX)   // Mascara para CONTROLARMOS o LED
-
-//LED3
-#define LED3_PIO           PIOB                 // periferico que controla o LED
-#define LED3_PIO_ID        ID_PIOB              // ID do periférico PIOC (controla LED)
-#define LED3_PIO_IDX       2                    // ID do LED no PIO
-#define LED3_PIO_IDX_MASK  (1 << LED3_PIO_IDX)   // Mascara para CONTROLARMOS o LED
-
-volatile char stop = 1;
-volatile char but_flag;
-volatile char selecao_flag = 0;
-volatile char simbolo = 0;
-volatile char desenha = 0;
-volatile char troca = 0 ;
-int led = 0;
-int thisNote = 0;
-int start = 1;
-
 
 void init(void);
-void set_buzzer(void);
-void clear_buzzer(void);
-int  get_startstop(void);
-int  get_selecao(void);
-void buzzer_test(int freq);
-void tone(int freq, int time);
-void play(int melodia[], int time, int notes);
-void barra_interativa(void);
-void botao_play(void);
-void botao_pause(void);
 
-
-void set_buzzer(void){
-	pio_set(BUZZER_PIO, BUZZER_PIO_IDX_MASK);
-}
-
-void clear_buzzer(void){
-	pio_clear(BUZZER_PIO, BUZZER_PIO_IDX_MASK);
-}
-	
-int  get_startstop(void){
-	return pio_get(START_PIO, PIO_INPUT, START_PIO_IDX_MASK);
-}
-
-int  get_selecao(void){
-	return pio_get(SELECAO_PIO, PIO_INPUT, SELECAO_PIO_IDX_MASK);
-}
-
-void buzzer_test(int freq){
-	if (led){
-		pio_clear(LED1_PIO, LED1_PIO_IDX_MASK);
-		pio_set(LED2_PIO, LED2_PIO_IDX_MASK);
-		pio_clear(LED3_PIO, LED3_PIO_IDX_MASK);
-	}
-	else{
-		pio_set(LED1_PIO, LED1_PIO_IDX_MASK);
-		pio_clear(LED2_PIO, LED2_PIO_IDX_MASK);
-		pio_set(LED3_PIO, LED3_PIO_IDX_MASK);
-	}
-	int wait = 1E6/(freq);
-	set_buzzer();     
-	delay_us(wait/2);                    
-	clear_buzzer();   
-	delay_us(wait/2);
-	led=!led;
-}
-
-void tone(int freq, int time){
-	 int i = 0;
-	 // precisamos contar a quantidade de pulsos no tempo (dado em ms), logo basta converter o tempo para segundos e 
-	 // multiplicar pela frequencia de oscilação, lembrando do casting para nao perder valor.
-	 double time_s = (double) time/1000;
-	 int count = (float)freq * time_s;
-	 while (i < count){
-		 buzzer_test(freq);
-		 i++;
-	 }
-}
-
-void play(int melodia[], int time, int notes){
-		int wholenote = (60000 * 4) / time;
-		int divider = 0;
-		if (!thisNote){
-			for(int i=140;i>=0;i-=2){
-				gfx_mono_draw_rect(i, 5, 2, 5, GFX_PIXEL_CLR);
-			}
-		}
-		for (thisNote; thisNote < notes * 2 && !stop; thisNote = thisNote + 2) {
-			gfx_mono_draw_rect(97*thisNote / (2*notes) + 30 , 5, 2, 5, GFX_PIXEL_SET);
-			if (simbolo){
-				gfx_mono_generic_draw_vertical_line(2, 10, 20,GFX_PIXEL_CLR);
-				gfx_mono_generic_draw_line(2,10,15,20,GFX_PIXEL_CLR);
-				gfx_mono_generic_draw_line(2,30,15,20,GFX_PIXEL_CLR);
-				botao_pause();
-			}
-			divider = melodia[thisNote + 1];
-			int noteDuration = (wholenote) / abs(divider);
-			if (divider < 0) {
-				noteDuration *= 1.5;
-			}
-			if  (melodia[thisNote] != 0){
-				tone(melodia[thisNote], noteDuration*0.9);
-				delay_ms(noteDuration/2);
-			}
-			else{
-				delay_ms(noteDuration);
-			}
-		}
-}
-
-void barra_interativa(void){
-	for(int i=40;i<=120 && !troca;i+=2){
-		gfx_mono_draw_rect(i, 5, 2, 10, GFX_PIXEL_SET);
-		delay_ms(10);
-	}
-	for(int i=120;i>=40 && !troca;i-=2){
-		gfx_mono_draw_rect(i, 5, 2, 10, GFX_PIXEL_CLR);
-		delay_ms(10);
-	}
-}
-
-void botao_play(void){
-	gfx_mono_generic_draw_vertical_line(2, 10, 20,GFX_PIXEL_SET);
-	gfx_mono_generic_draw_line(2,10,15,20,GFX_PIXEL_SET);
-	gfx_mono_generic_draw_line(2,30,15,20,GFX_PIXEL_SET);
-}
-
-void botao_pause(void){
-	gfx_mono_generic_draw_vertical_line(2, 10, 20,GFX_PIXEL_SET);
-	gfx_mono_generic_draw_vertical_line(12, 10, 20,GFX_PIXEL_SET);
-}
 
 void but_callback(void)
 {
@@ -247,6 +97,12 @@ int main (void)
   // Escreve na tela um circulo e um texto
 	//gfx_mono_draw_filled_circle(20, 16, 16, GFX_PIXEL_SET, GFX_WHOLE);
 	gfx_mono_draw_string("Inicie", 45,16, &sysfont);
+	song mario;
+	song star_wars;
+	song godfather;
+	start_struct(&mario,mario_song,time_mario,notes_mario);
+	start_struct(&star_wars,starwars_song,time_starwars,notes_starwars);
+	start_struct(&godfather,godfather_song,time_godfather,notes_godfather);
 
 
   /* Insert application code here, after the board has been initialized. */
@@ -267,13 +123,13 @@ int main (void)
 		if (but_flag){
 			start = 0;
 			if (selecao_flag == 1){
-				play(mario,time_mario,notes_mario);
+				play(mario);
 			}
 			else if(selecao_flag ==2){
-				play(starwars,time_starwars,notes_starwars);
+				play(star_wars);
 			}
 			else if(selecao_flag ==3){
-				play(godfather,time_godfather,notes_godfather);
+				play(godfather);
 			}
 			but_flag = 0;
 		}
