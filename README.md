@@ -14,12 +14,25 @@ foi concluído! Isso gerará um PR no classroom que será avaliado pela equipe.
 
 Pinos utilizados:
 
-| Função  | PINO (ex: PA11) |
+| Função  | PINO  |
 |---------|-----------------|
 | BUZZER  |        PA4         |
 | START   |        PD28         |
 | SELEÇÃO |         PC31        |
 
+## Estruturação do Software
+O software utilizado para este projeto foi dividido em três arquivos principais:
+ - play.c (módulos de execução e funcionamento do software)
+ - musicas.c (definição da struct)
+ - main.c (função principal de execução do sistema embarcado)
+ 
+ No software, entre as funcionalidades principais, tem-se:
+ - Controle e tocagem das músicas ( controle de intervalos, frequência e tonalidade para o buzzer)
+ - Controle e interrupções geradas por botões de input, que geram sinais de start/pause e seleção musical;
+ - Funções de controle da escrita no OLED, gerando barra de progresso da música, nome da música atual, e botão de START ou PAUSE.
+ - Controle dos LEDS que irão acender e apagar de acordo com a frequência e música tocada.
+ 
+Cada uma dessas funcionalidades podem ser encontradas nos módulos dentro da pasta .src
 
 ### Imagem da montagem
 
