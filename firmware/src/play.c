@@ -136,6 +136,10 @@ void tone(int freq, int time){
 	int led = 0;
 	// precisamos contar a quantidade de pulsos no tempo (dado em ms), logo basta converter o tempo para segundos e
 	// multiplicar pela frequencia de oscilação, lembrando do casting para nao perder valor.
+	if (!freq){
+		delay_ms(time);
+		return;
+	}
 	double time_s = (double) time/1000;
 	int count = (float)freq * time_s;
 	while (i < count){
