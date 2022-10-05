@@ -19,7 +19,6 @@ volatile char selecao_flag = 0;
 volatile char simbolo = 0;
 volatile char desenha = 0;
 volatile char troca = 0 ;
-int led = 0;
 int thisNote = 0;
 int start = 1;
 
@@ -104,7 +103,7 @@ void botao_play(void){
 
 
 
-void atualiza_led(){
+void atualiza_led(int led){
 	if (led){
 		pio_clear(LED1_PIO, LED1_PIO_IDX_MASK);
 		pio_set(LED2_PIO, LED2_PIO_IDX_MASK);
@@ -117,14 +116,13 @@ void atualiza_led(){
 	}
 }
 
-void buzzer_test(int freq){
-	atualiza_led();
+void buzzer_test(int freq, int led){
+	atualiza_led(led);
 	int wait = 1E6/(freq);
 	set_buzzer();
 	delay_us(wait/2);
 	clear_buzzer();
 	delay_us(wait/2);
-	led=!led;
 }
 
 void tela_inicial(){
@@ -135,12 +133,14 @@ void tela_inicial(){
 }
 void tone(int freq, int time){
 	int i = 0;
+	int led = 0;
 	// precisamos contar a quantidade de pulsos no tempo (dado em ms), logo basta converter o tempo para segundos e
 	// multiplicar pela frequencia de oscilação, lembrando do casting para nao perder valor.
 	double time_s = (double) time/1000;
 	int count = (float)freq * time_s;
 	while (i < count){
-		buzzer_test(freq);
+		led=!led;
+		buzzer_test(freq, led);
 		i++;
 	}
 }

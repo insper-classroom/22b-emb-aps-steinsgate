@@ -34,7 +34,6 @@ extern volatile char selecao_flag;
 extern volatile char simbolo;
 extern volatile char desenha;
 extern volatile char troca;
-extern int led;
 extern int thisNote;
 extern int start;
 
