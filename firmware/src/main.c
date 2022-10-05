@@ -6,6 +6,7 @@
 #include "godfather.h"
 #include "play.h"
 #include "musicas.h"
+#include "pinos.h"
 #include <asf.h>
 #include "gfx_mono_ug_2832hsweg04.h"
 #include "gfx_mono_text.h"
